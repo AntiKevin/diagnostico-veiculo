@@ -57,7 +57,9 @@ diagnostico(alternador_defeituoso) :-
 %    - Se temperatura do motor > 100°C e/ou check engine aceso,
 %      indicamos problema de arrefecimento.
 diagnostico(sistema_arrefecimento) :-
-* continue aqui...
+    temperatura_motor(Temp),
+    Temp > 100,
+    luz_check_engine.
 
 % 3.4 Diagnóstico de baixo nível de óleo
 %    - Se nível do óleo está abaixo do mínimo,

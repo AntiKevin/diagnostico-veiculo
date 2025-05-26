@@ -65,7 +65,9 @@ diagnostico(sistema_arrefecimento) :-
 %    - Se nível do óleo está abaixo do mínimo,
 %      sugerimos problema relacionado ao óleo.
 diagnostico(baixo_nivel_oleo) :-
-* continue aqui...
+    nivel_oleo(Nivel),
+    Nível < 1.0,  % Considerando 1.0 como nível mínimo aceitável
+    luz_check_engine.
 
 % 3.5 Diagnóstico de vela de ignição defeituosa
 %    - Se há falha de ignição frequente, mas a bateria está boa,

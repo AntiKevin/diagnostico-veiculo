@@ -84,7 +84,8 @@ diagnostico(vela_ignicao_defeituosa) :-
 %      pode ser o sensor de oxigênio.
 diagnostico(sensor_oxigenio_defeituoso) :-
     sensor_oxigenio(Valor),
-    (   Valor < 0.5 ; Valor > 1.5 ),  % Valores fora da faixa normal
+    Valor < 0.5, 
+    Valor > 1.5,
     luz_check_engine,
     rotacao_alta.
 
@@ -95,7 +96,7 @@ diagnostico(problema_injecao) :-
     rotacao_alta,
     luz_check_engine,
     sensor_oxigenio(Valor),
-    Valor >= 0.5,  % Considerando faixa normal
+    Valor >= 0.5,
     Valor =< 1.5.
 
 % 3.8 Diagnóstico de ruídos no motor (problema interno ou transmissão)

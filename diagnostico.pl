@@ -83,7 +83,10 @@ diagnostico(vela_ignicao_defeituosa) :-
 %      e a luz de check engine pisca somente em alta rotação,
 %      pode ser o sensor de oxigênio.
 diagnostico(sensor_oxigenio_defeituoso) :-
-* continue aqui...
+    sensor_oxigenio(Valor),
+    (   Valor < 0.5 ; Valor > 1.5 ),  % Valores fora da faixa normal
+    luz_check_engine,
+    rotacao_alta.
 
 % 3.7 Diagnóstico de problema na injeção
 %    - Se há falha em alta rotação e a leitura do sensor de

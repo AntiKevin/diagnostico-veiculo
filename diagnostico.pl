@@ -92,7 +92,11 @@ diagnostico(sensor_oxigenio_defeituoso) :-
 %    - Se há falha em alta rotação e a leitura do sensor de
 %      oxigênio está na faixa normal, pode ser a injeção.
 diagnostico(problema_injecao) :-
-* continue aqui...
+    rotacao_alta,
+    luz_check_engine,
+    sensor_oxigenio(Valor),
+    Valor >= 0.5,  % Considerando faixa normal
+    Valor =< 1.5.
 
 % 3.8 Diagnóstico de ruídos no motor (problema interno ou transmissão)
 %    - Se há barulho incomum e perda de potência, mas a check engine

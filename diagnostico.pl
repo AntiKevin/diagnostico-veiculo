@@ -3,10 +3,10 @@
  *********************************************/
 :- dynamic(bateria/1).
 :- dynamic(temperatura_motor/1).
-* continue aqui...
+
 :- dynamic(luz_check_engine/0).
 :- dynamic(luz_bateria/0).
-* continue aqui...
+
 
 
 /*********************************************
@@ -73,7 +73,10 @@ diagnostico(baixo_nivel_oleo) :-
 %    - Se há falha de ignição frequente, mas a bateria está boa,
 %      suspeitamos da vela de ignição.
 diagnostico(vela_ignicao_defeituosa) :-
-* continue aqui...
+    falha_ignicao,
+    \+ luz_bateria,
+    bateria(Voltage),
+    Voltage >= 12.  % Bateria está boa  
 
 % 3.6 Diagnóstico de sensor de oxigênio defeituoso
 %    - Se o sensor de oxigênio marca valor fora da faixa normal

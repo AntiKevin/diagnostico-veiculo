@@ -110,7 +110,11 @@ diagnostico(problema_interno_motor) :-
     !.
 
 diagnostico(problema_transmissao) :-
-* continue aqui...
+    barulho_incomum,
+    luz_check_engine,
+    temperatura_motor(T),
+    T < 100,  % Temperatura normal
+    !.
 
 /*********************************************
  * 4. RECOMENDAÇÕES DE AÇÃO

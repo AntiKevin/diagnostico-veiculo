@@ -3,10 +3,13 @@
  *********************************************/
 :- dynamic(bateria/1).
 :- dynamic(temperatura_motor/1).
-
+:- dynamic(nivel_oleo/1).
+:- dynamic(sensor_oxigenio/1).
+:- dynamic(falha_ignicao/0).
+:- dynamic(rotacao_alta/0).
+:- dynamic(barulho_incomum/0).
 :- dynamic(luz_check_engine/0).
 :- dynamic(luz_bateria/0).
-
 
 
 /*********************************************
@@ -66,7 +69,7 @@ diagnostico(sistema_arrefecimento) :-
 %      sugerimos problema relacionado ao óleo.
 diagnostico(baixo_nivel_oleo) :-
     nivel_oleo(Nivel),
-    Nível < 1.0,  % Considerando 1.0 como nível mínimo aceitável
+    Nivel < 1.0,  % Considerando 1.0 como nível mínimo aceitável
     luz_check_engine.
 
 % 3.5 Diagnóstico de vela de ignição defeituosa
@@ -124,7 +127,12 @@ diagnostico(problema_transmissao) :-
 recomendacao(bateria_fraca, 'Recarregar ou substituir a bateria').
 recomendacao(alternador_defeituoso, 'Verificar correia do alternador ou trocar alternador').
 recomendacao(sistema_arrefecimento, 'Checar radiador, bomba d\'água, ventoinha e fluido de arrefecimento').
-* continue aqui...
+recomendacao(baixo_nivel_oleo, 'Completar nível de óleo ou verificar vazamentos').
+recomendacao(vela_ignicao_defeituosa, 'Substituir vela de ignição').
+recomendacao(sensor_oxigenio_defeituoso, 'Substituir sensor de oxigênio').
+recomendacao(problema_injecao, 'Verificar sistema de injeção e bicos injetores').
+recomendacao(problema_interno_motor, 'Levar a um mecânico para verificar bielas, pistões e outros componentes internos').
+recomendacao(problema_transmissao, 'Verificar fluido de transmissão e componentes mecânicos da transmissão').
 
 /*********************************************
  * 5. PREDICADO PRINCIPAL DE DIAGNÓSTICO
@@ -210,4 +218,7 @@ main :-
     write('=== Executando varios casos de teste ==='), nl,
     caso_teste_1_partida_inconsistente,
     caso_teste_2_superaquecimento,
+    caso_teste_3_motor_engasgado_altas_rotacoes,
+    caso_teste_4_ruidos_ao_acelerar,
+    write('=== Todos os casos de teste executados com sucesso ==='), nl,
     halt.

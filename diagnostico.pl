@@ -5,11 +5,11 @@
 :- dynamic(temperatura_motor/1).
 :- dynamic(nivel_oleo/1).
 :- dynamic(sensor_oxigenio/1).
-:- dynamic(falha_ignicao/0).
-:- dynamic(rotacao_alta/0).
-:- dynamic(barulho_incomum/0).
 :- dynamic(luz_check_engine/0).
 :- dynamic(luz_bateria/0).
+:- dynamic(falha_ignicao/0).
+:- dynamic(barulho_incomum/0).
+:- dynamic(rotacao_alta/0).
 
 
 /*********************************************
@@ -52,7 +52,7 @@ diagnostico(bateria_fraca) :-
 %      suspeita do alternador.
 diagnostico(alternador_defeituoso) :-
     luz_bateria,
-    \+ diagnostico(bateria_fraca).  
+    \+ diagnostico(bateria_fraca).
     /* Se não foi diagnosticada bateria_fraca,
        mas a luz continua acesa, pode ser alternador. */
 
@@ -60,47 +60,45 @@ diagnostico(alternador_defeituoso) :-
 %    - Se temperatura do motor > 100°C e/ou check engine aceso,
 %      indicamos problema de arrefecimento.
 diagnostico(sistema_arrefecimento) :-
-    temperatura_motor(Temp),
-    Temp > 100,
-    luz_check_engine.
+    temperatura_motor(T),
+    T > 100,
+    (luz_check_engine ; true). % Check engine pode ou não estar acesa
 
 % 3.4 Diagnóstico de baixo nível de óleo
-%    - Se nível do óleo está abaixo do mínimo,
+%    - Se nível do óleo está abaixo do mínimo (ex: 2.0),
 %      sugerimos problema relacionado ao óleo.
 diagnostico(baixo_nivel_oleo) :-
-    nivel_oleo(Nivel),
-    Nivel < 1.0,  % Considerando 1.0 como nível mínimo aceitável
-    luz_check_engine.
+    nivel_oleo(N),
+    N < 2.0, % Definindo um limite mínimo como exemplo
+    (luz_check_engine ; true). % Pode estar associado ao check engine
 
 % 3.5 Diagnóstico de vela de ignição defeituosa
 %    - Se há falha de ignição frequente, mas a bateria está boa,
 %      suspeitamos da vela de ignição.
 diagnostico(vela_ignicao_defeituosa) :-
     falha_ignicao,
-    \+ luz_bateria,
-    bateria(Voltage),
-    Voltage >= 12.  % Bateria está boa  
+    (bateria(V), V >= 12 ; \+ bateria(_)). % Bateria OK ou sem informação
 
 % 3.6 Diagnóstico de sensor de oxigênio defeituoso
-%    - Se o sensor de oxigênio marca valor fora da faixa normal
-%      e a luz de check engine pisca somente em alta rotação,
+%    - Se o sensor de oxigênio marca valor fora da faixa normal (ex: > 0.9 ou < 0.1)
+%      e a luz de check engine pisca (ou está acesa) em alta rotação,
 %      pode ser o sensor de oxigênio.
 diagnostico(sensor_oxigenio_defeituoso) :-
-    sensor_oxigenio(Valor),
-    Valor < 0.5, 
-    Valor > 1.5,
+    rotacao_alta,
     luz_check_engine,
-    rotacao_alta.
+    sensor_oxigenio(O),
+    (O > 0.9 ; O < 0.1). % Faixa normal exemplo: 0.1 a 0.9
 
 % 3.7 Diagnóstico de problema na injeção
 %    - Se há falha em alta rotação e a leitura do sensor de
-%      oxigênio está na faixa normal, pode ser a injeção.
+%      oxigênio está na faixa normal, mas check engine acesa,
+%      pode ser a injeção.
 diagnostico(problema_injecao) :-
     rotacao_alta,
     luz_check_engine,
-    sensor_oxigenio(Valor),
-    Valor >= 0.5,
-    Valor =< 1.5.
+    sensor_oxigenio(O),
+    O >= 0.1, O =< 0.9, % Sensor OK
+    \+ diagnostico(sensor_oxigenio_defeituoso).
 
 % 3.8 Diagnóstico de ruídos no motor (problema interno ou transmissão)
 %    - Se há barulho incomum e perda de potência, mas a check engine
@@ -110,14 +108,14 @@ diagnostico(problema_interno_motor) :-
     \+ luz_check_engine,
     temperatura_motor(T),
     T < 100,  % Temperatura normal
+    % Adicionar mais condições para diferenciar de transmissão se necessário
     !.
 
 diagnostico(problema_transmissao) :-
     barulho_incomum,
-    luz_check_engine,
-    temperatura_motor(T),
-    T < 100,  % Temperatura normal
-    !.
+    % Condições específicas de transmissão (ex: ruído ao trocar marcha)
+    % Aqui, simplificamos: se não for interno e houver barulho, pode ser transmissão
+    \+ diagnostico(problema_interno_motor).
 
 /*********************************************
  * 4. RECOMENDAÇÕES DE AÇÃO
@@ -135,17 +133,36 @@ recomendacao(problema_interno_motor, 'Levar a um mecânico para verificar bielas
 recomendacao(problema_transmissao, 'Verificar fluido de transmissão e componentes mecânicos da transmissão').
 
 /*********************************************
+ * Implementação do predicado list_to_set/2 para GNU Prolog
+ * (já que este não possui o predicado na biblioteca padrão)
+ *********************************************/
+% Remove duplicatas de uma lista
+list_to_set([], []).
+list_to_set([H|T], [H|T1]) :- 
+    delete_all(H, T, T2),
+    list_to_set(T2, T1).
+
+% Remove todas as ocorrências de X em uma lista
+delete_all(_, [], []).
+delete_all(X, [X|T], T1) :- 
+    delete_all(X, T, T1).
+delete_all(X, [H|T], [H|T1]) :- 
+    X \= H,
+    delete_all(X, T, T1).
+
+/*********************************************
  * 5. PREDICADO PRINCIPAL DE DIAGNÓSTICO
  *    - Identifica todas as causas possíveis,
  *      exibe as recomendações. (não mexer)
  *********************************************/
 diagnosticar :-
     % Encontra todas as causas que satisfazem as regras
-    findall(Causa, diagnostico(Causa), ListaCausas),
-    (   ListaCausas \= []
-    ->  format('Possiveis problemas diagnosticados: ~w~n',[ListaCausas]),
-        listar_recomendacoes(ListaCausas)
-    ;   write('Nenhum problema foi diagnosticado com as informacoes atuais.'), nl
+    findall(Causa, diagnostico(Causa), ListaCausasRaw),
+    list_to_set(ListaCausasRaw, ListaCausasUnicas), % Remove duplicatas
+    (   ListaCausasUnicas \= []
+    ->  format("Possiveis problemas diagnosticados: ~w~n",[ListaCausasUnicas]),
+        listar_recomendacoes(ListaCausasUnicas)
+    ;   write("Nenhum problema foi diagnosticado com as informacoes atuais."), nl
     ).
 
 listar_recomendacoes([]).
@@ -178,7 +195,7 @@ caso_teste_2_superaquecimento :-
     write('=== Caso de Teste 2: Superaquecimento no Motor ==='), nl,
     limpar_estado,
     assertz(temperatura_motor(105)),
-    assertz(nivel_oleo(1.5)),
+    assertz(nivel_oleo(1.5)), % Nível baixo (abaixo de 2.0)
     assertz(luz_check_engine),
     diagnosticar,
     limpar_estado.
@@ -188,7 +205,7 @@ caso_teste_3_motor_engasgado_altas_rotacoes :-
     limpar_estado,
     assertz(rotacao_alta),
     assertz(luz_check_engine),
-    assertz(sensor_oxigenio(1.0)), % valor fora do normal
+    assertz(sensor_oxigenio(1.0)), % valor fora do normal (> 0.9)
     diagnosticar,
     limpar_estado.
 
@@ -197,6 +214,8 @@ caso_teste_4_ruidos_ao_acelerar :-
     limpar_estado,
     assertz(barulho_incomum),
     assertz(temperatura_motor(90)),  % dentro da faixa normal
+    % Para testar 'problema_interno_motor' ou 'problema_transmissao'
+    % pode ser necessário adicionar mais fatos ou refinar as regras 3.8
     diagnosticar,
     limpar_estado.
 
@@ -211,14 +230,18 @@ limpar_estado :-
     retractall(falha_ignicao),
     retractall(barulho_incomum),
     retractall(rotacao_alta).
-    
+
 :- initialization(main).
 
 main :-
-    write('=== Executando varios casos de teste ==='), nl,
+    write('=== Executando casos de teste selecionados ==='), nl,
     caso_teste_1_partida_inconsistente,
+    nl,
     caso_teste_2_superaquecimento,
+    nl,
     caso_teste_3_motor_engasgado_altas_rotacoes,
+    nl,
     caso_teste_4_ruidos_ao_acelerar,
-    write('=== Todos os casos de teste executados com sucesso ==='), nl,
+    nl,
+    write('=== Fim dos testes ==='), nl,
     halt.
